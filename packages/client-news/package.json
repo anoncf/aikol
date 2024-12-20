@@ -1,0 +1,33 @@
+{
+    "name": "@ai16z/client-news",
+    "version": "0.1.6-alpha.4",
+    "main": "dist/index.js",
+    "type": "module",
+    "types": "dist/index.d.ts",
+    "files": [
+        "dist",
+        "package.json",
+        "LICENSE",
+        "tsup.config.ts"
+    ],
+    "dependencies": {
+        "@ai16z/eliza": "workspace:*",
+        "axios": "^1.6.7",
+        "playwright": "1.48.2",
+        "@cliqz/adblocker-playwright": "1.34.0",
+        "capsolver-npm": "2.0.2"
+    },
+    "devDependencies": {
+        "@types/node": "22.8.4",
+        "tsup": "8.3.5"
+    },
+    "scripts": {
+        "build": "tsup --format esm --dts",
+        "dev": "tsup --format esm --dts --watch",
+        "lint": "eslint --fix  --cache .",
+        "postinstall": "node scripts/postinstall.js"
+    },
+    "peerDependencies": {
+        "whatwg-url": "7.1.0"
+    }
+}

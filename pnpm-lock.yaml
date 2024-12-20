@@ -123,6 +123,9 @@ importers:
       '@ai16z/client-lens':
         specifier: workspace:*
         version: link:../packages/client-lens
+      '@ai16z/client-news':
+        specifier: workspace:*
+        version: link:../packages/client-news
       '@ai16z/client-slack':
         specifier: workspace:*
         version: link:../packages/client-slack
@@ -618,6 +621,22 @@ importers:
     devDependencies:
       tsup:
         specifier: ^8.3.5
+        version: 8.3.5(@swc/core@1.10.1(@swc/helpers@0.5.15))(jiti@2.4.1)(postcss@8.4.49)(typescript@5.6.3)(yaml@2.6.1)
+
+  packages/client-news:
+    dependencies:
+      '@ai16z/eliza':
+        specifier: workspace:*
+        version: link:../core
+      axios:
+        specifier: ^1.6.7
+        version: 1.7.9(debug@4.4.0)
+      whatwg-url:
+        specifier: 7.1.0
+        version: 7.1.0
+    devDependencies:
+      tsup:
+        specifier: 8.3.5
         version: 8.3.5(@swc/core@1.10.1(@swc/helpers@0.5.15))(jiti@2.4.1)(postcss@8.4.49)(typescript@5.6.3)(yaml@2.6.1)
 
   packages/client-slack:

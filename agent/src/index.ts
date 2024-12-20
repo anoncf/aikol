@@ -30,6 +30,7 @@ import { bootstrapPlugin } from "@ai16z/plugin-bootstrap";
 import createGoatPlugin from "@ai16z/plugin-goat";
 // import { intifacePlugin } from "@ai16z/plugin-intiface";
 import { DirectClient } from "@ai16z/client-direct";
+import { NewsClientInterface } from "@ai16z/client-news";
 import { aptosPlugin } from "@ai16z/plugin-aptos";
 import {
     advancedTradePlugin,
@@ -395,6 +396,11 @@ export async function initializeClients(
     if (clientTypes.includes("slack")) {
         const slackClient = await SlackClientInterface.start(runtime);
         if (slackClient) clients.push(slackClient);
+    }
+
+    if (clientTypes.includes("news")) {
+        const newsClient = await NewsClientInterface.start(runtime);
+        if (newsClient) clients.news = newsClient;
     }
 
     if (character.plugins?.length > 0) {
