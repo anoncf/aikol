@@ -1,7 +1,7 @@
-import { IAgentRuntime } from "@ai16z/eliza";
+import { IAgentRuntime, elizaLogger } from "@ai16z/eliza";
 import axios from "axios";
+import { CryptoNews, FormattedNews, NewsResponse } from "../types";
 import { BrowserService } from "./browser";
-import { NewsResponse, CryptoNews, FormattedNews } from "../types";
 
 export class CryptoPanicService {
     private readonly baseUrl = "https://cryptopanic.com/api/pro/v1/posts/";
@@ -23,59 +23,72 @@ export class CryptoPanicService {
         currency: string = "SOL",
         filter: string = "rising"
     ): Promise<NewsResponse> {
-        const response = await axios.get(
-            `${this.baseUrl}?auth_token=${this.authToken}&currencies=${currency}&filter=${filter}&metadata=true`
+        elizaLogger.debug(
+            `Fetching news for ${currency} with filter ${filter}`
         );
+        const response = await axios.get(
+            `${this.baseUrl}?auth_token=${this.authToken}&public=true&currencies=${currency}&filter=${filter}&metadata=true&kind=news&page=1`
+        );
+        elizaLogger.debug("API Response cryptopanic:", {
+            count: response.data.count,
+            next: response.data.next,
+            results: response.data.results?.map((r) => ({
+                title: r.title,
+                published_at: r.published_at,
+                currencies: r.currencies,
+            })),
+        });
         return response.data;
     }
 
     async formatNews(
-        news: CryptoNews[],
-        targetCurrency: string,
+        news: any[],
+        currency: string,
         runtime: IAgentRuntime,
-        maxCrawl: number = 3 // Limit number of articles to crawl
+        maxCrawl: number
     ): Promise<FormattedNews[]> {
-        const filteredNews = news
-            .filter((item) =>
-                item.currencies.some((curr) => curr.code === targetCurrency)
-            )
-            .map((news) => ({
-                title: news.title,
-                description: news.metadata.description,
-                published: news.published_at,
-                url: news.url,
-                likes: news.votes.liked,
-                relevance: this.calculateRelevance(news),
-            }))
-            .sort((a, b) => b.relevance - a.relevance);
+        const formattedNews: FormattedNews[] = [];
+        let processedCount = 0;
 
-        // Take top N articles and fetch their full content
-        const topNews = filteredNews.slice(0, maxCrawl);
+        for (const item of news) {
+            if (processedCount >= maxCrawl) break;
 
-        // Fetch full content for each article in parallel
-        const newsWithContent = await Promise.all(
-            topNews.map(async (news) => {
-                try {
-                    const fullContent =
-                        await this.browserService.getPageContent(
-                            news.url,
-                            runtime
-                        );
-                    return {
-                        ...news,
-                        fullContent,
-                    };
-                } catch (error) {
-                    console.error(
-                        `Error fetching content for ${news.url}:`,
-                        error
-                    );
-                    return news;
-                }
-            })
-        );
+            const baseNews = {
+                title: item.title,
+                description: item.metadata?.description || "",
+                url: item.url,
+                published: item.published_at,
+                relevance: item.votes?.positive || 0,
+                likes: item.votes?.liked || 0,
+                currency,
+            };
 
-        return newsWithContent;
+            try {
+                // Attempt to crawl full content using the correct method
+                const pageContent = await this.browserService.getPageContent(
+                    item.url,
+                    runtime
+                );
+                formattedNews.push({
+                    ...baseNews,
+                    fullContent: pageContent.bodyContent,
+                });
+            } catch (error) {
+                elizaLogger.warn(
+                    `Failed to crawl ${item.url}, using base content only:`,
+                    error instanceof Error ? error.message : error
+                );
+                // Still include the news item even if crawling failed
+                formattedNews.push({
+                    ...baseNews,
+                    fullContent: "", // Empty string for failed crawls
+                });
+            }
+
+            processedCount++;
+        }
+
+        return formattedNews;
     }
 
     private calculateRelevance(news: CryptoNews): number {

@@ -1,7 +1,7 @@
 {
     "name": "AI KOL Lea",
     "plugins": [],
-    "clients": ["telegram"],
+    "clients": ["telegram", "news", "twitter"],
     "modelProvider": "grok",
     "settings": {
         "secrets": {},

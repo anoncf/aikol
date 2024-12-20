@@ -12,9 +12,11 @@ export const NewsClientInterface: Client = {
     },
 
     async stop(runtime: IAgentRuntime) {
-        const manager =
-            await runtime.cacheManager.get<NewsManager>("newsManager");
-        if (manager) {
+        const state = await runtime.cacheManager.get<{ active: boolean }>(
+            "newsManager"
+        );
+        if (state?.active) {
+            const manager = new NewsManager(runtime);
             await manager.stop();
         }
     },

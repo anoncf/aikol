@@ -20,6 +20,7 @@ export class NewsPollerService {
 
     async start() {
         const handleNewsPollingLoop = () => {
+            elizaLogger.debug("Starting news polling loop");
             this.pollNews();
             setTimeout(
                 handleNewsPollingLoop,
@@ -34,97 +35,133 @@ export class NewsPollerService {
 
     async stop() {
         this.stopPolling = true;
+        elizaLogger.debug("Stopping news polling service");
         await this.cryptoPanicService.cleanup();
     }
 
     private async pollNews() {
         if (this.isProcessing || this.stopPolling) {
-            elizaLogger.log(
-                "Already processing news or stopping, skipping poll"
+            elizaLogger.debug(
+                `Skipping poll: ${this.isProcessing ? "already processing" : "stopping"}`
             );
             return;
         }
 
+        this.isProcessing = true;
         try {
-            this.isProcessing = true;
-            elizaLogger.log("Polling for new crypto news");
-
-            // Get the last processed news timestamp
+            elizaLogger.debug("Starting news poll");
             const lastProcessed = await this.runtime.cacheManager.get<number>(
                 "news/last_processed_timestamp"
             );
+            elizaLogger.debug(`Last processed timestamp: ${lastProcessed}`);
 
-            // Get currencies from settings or use defaults
             const currencies = (
-                this.runtime.getSetting("NEWS_CURRENCIES") || "BTC,ETH,SOL"
-            )
-                .split(",")
-                .map((c) => c.trim());
-            const allNews: FormattedNews[] = [];
-
-            for (const currency of currencies) {
-                const newsResponse =
-                    await this.cryptoPanicService.fetchNews(currency);
-                if (!newsResponse.results) continue;
-
-                const formattedNews = await this.cryptoPanicService.formatNews(
-                    newsResponse.results,
-                    currency,
-                    this.runtime,
-                    Number(
-                        this.runtime.getSetting("NEWS_MAX_PER_CURRENCY") || 5
-                    )
-                );
-
-                allNews.push(...formattedNews);
-            }
-
-            // Filter out already processed news
-            const newNews = allNews.filter(
-                (news) =>
-                    !lastProcessed ||
-                    new Date(news.published).getTime() > lastProcessed
+                this.runtime.getSetting("NEWS_CURRENCIES") || "SOL"
+            ).split(",");
+            elizaLogger.debug(
+                `Fetching news for currencies: ${currencies.join(", ")}`
             );
 
-            if (newNews.length === 0) {
-                elizaLogger.log("No new news to process");
-                return;
+            const allNews: FormattedNews[] = [];
+            for (const currency of currencies) {
+                try {
+                    elizaLogger.debug(`Fetching news for ${currency}`);
+                    const newsResponse =
+                        await this.cryptoPanicService.fetchNews(currency);
+                    if (!newsResponse.results) {
+                        elizaLogger.warn(`No results for ${currency}`);
+                        continue;
+                    }
+                    elizaLogger.debug(
+                        `Got ${newsResponse.results.length} results for ${currency}`
+                    );
+
+                    const formattedNews =
+                        await this.cryptoPanicService.formatNews(
+                            newsResponse.results,
+                            currency,
+                            this.runtime,
+                            Number(
+                                this.runtime.getSetting(
+                                    "NEWS_MAX_PER_CURRENCY"
+                                ) || 5
+                            )
+                        );
+                    elizaLogger.debug(
+                        `Formatted ${formattedNews.length} news items for ${currency} (${formattedNews.filter((n) => n.fullContent).length} with full content)`
+                    );
+                    allNews.push(...formattedNews);
+                } catch (error) {
+                    elizaLogger.error(
+                        `Error processing currency ${currency}:`,
+                        error instanceof Error ? error.stack : error
+                    );
+                }
             }
 
-            // Process and store each news item
-            for (const news of newNews) {
-                const roomId = stringToUuid("news-room");
+            const newNews = allNews;
 
-                // Ensure room exists
-                await this.runtime.ensureRoomExists(roomId);
-                await this.runtime.ensureParticipantInRoom(
-                    this.runtime.agentId,
-                    roomId
-                );
+            // const newNews = allNews.filter(
+            //     (news) =>
+            //         !lastProcessed ||
+            //         new Date(news.published).getTime() > lastProcessed
+            // );
 
-                // Create memory for the news
-                await this.runtime.messageManager.createMemory({
-                    id: stringToUuid(news.url),
-                    userId: this.runtime.agentId,
-                    agentId: this.runtime.agentId,
-                    content: {
-                        text: `${news.title}\n\n${news.description}\n\n${news.fullContent || ""}`,
-                        url: news.url,
-                        source: "cryptopanic",
-                        metadata: {
-                            relevance: news.relevance,
-                            likes: news.likes,
+            // elizaLogger.debug(`Found ${newNews.length} new news items`);
+            // if (newNews.length === 0) {
+            //     elizaLogger.log("No new news to process");
+            //     return;
+            // }
+
+            for (const news of allNews) {
+                try {
+                    const roomId = stringToUuid("news-room");
+                    await this.runtime.ensureRoomExists(roomId);
+                    await this.runtime.ensureParticipantInRoom(
+                        this.runtime.agentId,
+                        roomId
+                    );
+
+                    if (!news.title) {
+                        elizaLogger.warn(`No title for news item ${news.url}`);
+                        continue;
+                    }
+
+                    const textToEmbed = `${news.title}\n\n${news.description}\n\n${
+                        news.fullContent || ""
+                    }`;
+
+                    // const embedding = await embed(this.runtime, textToEmbed);
+
+                    await this.runtime.messageManager.createMemory({
+                        id: stringToUuid(news.url),
+                        userId: this.runtime.agentId,
+                        agentId: this.runtime.agentId,
+                        content: {
+                            text: textToEmbed,
+                            url: news.url,
+                            source: "cryptopanic",
+                            metadata: {
+                                relevance: news.relevance,
+                                likes: news.likes,
+                            },
                         },
-                    },
-                    roomId,
-                    embedding: getEmbeddingZeroVector(),
-                    createdAt: new Date(news.published).getTime(),
-                });
-
-                elizaLogger.log(`Stored news: ${news.title}`);
+                        roomId,
+                        embedding: getEmbeddingZeroVector(),
+                        unique: true,
+                        createdAt: new Date(news.published).getTime(),
+                    });
+                    elizaLogger.log(
+                        `Stored news with embedding: ${news.title}`
+                    );
+                } catch (error) {
+                    elizaLogger.error(
+                        `Error storing news item ${news.url}:`,
+                        error instanceof Error ? error.stack : error
+                    );
+                }
             }
 
-            // Update last processed timestamp
             const latestTimestamp = Math.max(
                 ...newNews.map((news) => new Date(news.published).getTime())
             );
@@ -132,10 +169,14 @@ export class NewsPollerService {
                 "news/last_processed_timestamp",
                 latestTimestamp
             );
-
             elizaLogger.log(`Processed ${newNews.length} new news items`);
         } catch (error) {
-            elizaLogger.error("Error polling news:", error);
+            elizaLogger.error(
+                "Error polling news:",
+                error instanceof Error ? error.stack : error,
+                "\nFull error object:",
+                JSON.stringify(error, null, 2)
+            );
         } finally {
             this.isProcessing = false;
         }

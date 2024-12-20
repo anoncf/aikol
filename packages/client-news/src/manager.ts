@@ -13,11 +13,12 @@ export class NewsManager {
     async start() {
         await this.validateConfig();
         await this.poller.start();
-        await this.runtime.cacheManager.set("newsManager", this);
+        await this.runtime.cacheManager.set("newsManager", { active: true });
     }
 
     async stop() {
         await this.poller.stop();
+        await this.runtime.cacheManager.set("newsManager", { active: false });
     }
 
     private async validateConfig() {
