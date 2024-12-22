@@ -21,14 +21,15 @@ export class CryptoPanicService {
 
     async fetchNews(
         currency: string = "SOL",
-        filter: string = "rising"
+        filter: string | null = null
     ): Promise<NewsResponse> {
         elizaLogger.debug(
-            `Fetching news for ${currency} with filter ${filter}`
+            `Fetching news for ${currency}${filter ? ` with filter ${filter}` : ""}`
         );
-        const response = await axios.get(
-            `${this.baseUrl}?auth_token=${this.authToken}&public=true&currencies=${currency}&filter=${filter}&metadata=true&kind=news&page=1`
-        );
+        const baseUrl = `${this.baseUrl}?auth_token=${this.authToken}&public=true&currencies=${currency}&metadata=true&kind=news&page=1`;
+        const url = filter ? `${baseUrl}&filter=${filter}` : baseUrl;
+
+        const response = await axios.get(url);
         elizaLogger.debug("API Response cryptopanic:", {
             count: response.data.count,
             next: response.data.next,
@@ -64,7 +65,11 @@ export class CryptoPanicService {
             };
 
             try {
-                // Attempt to crawl full content using the correct method
+                // Add delay between requests (2 seconds)
+                if (processedCount > 0) {
+                    await new Promise((resolve) => setTimeout(resolve, 2000));
+                }
+
                 const pageContent = await this.browserService.getPageContent(
                     item.url,
                     runtime
@@ -78,10 +83,9 @@ export class CryptoPanicService {
                     `Failed to crawl ${item.url}, using base content only:`,
                     error instanceof Error ? error.message : error
                 );
-                // Still include the news item even if crawling failed
                 formattedNews.push({
                     ...baseNews,
-                    fullContent: "", // Empty string for failed crawls
+                    fullContent: "",
                 });
             }
 

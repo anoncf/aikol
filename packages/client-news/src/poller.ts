@@ -1,7 +1,7 @@
 import {
     IAgentRuntime,
+    MemoryManager,
     elizaLogger,
-    getEmbeddingZeroVector,
     stringToUuid,
 } from "@ai16z/eliza";
 import { CryptoPanicService } from "./services/cryptopanic";
@@ -12,13 +12,44 @@ export class NewsPollerService {
     private cryptoPanicService: CryptoPanicService;
     private isProcessing: boolean = false;
     private stopPolling: boolean = false;
+    private newsManager: MemoryManager;
 
     constructor(runtime: IAgentRuntime) {
         this.runtime = runtime;
         this.cryptoPanicService = new CryptoPanicService();
+        this.newsManager = new MemoryManager({
+            runtime,
+            tableName: "news",
+        });
+    }
+
+    private async debugNews() {
+        const newsRoomId = stringToUuid("news-room");
+        const recentNews = await this.newsManager.getMemories({
+            roomId: newsRoomId,
+            count: 10,
+            start: 0,
+            end: Date.now(),
+            unique: false,
+        });
+
+        elizaLogger.debug("=== Last 10 News Items ===");
+        recentNews.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+        recentNews.forEach((news, index) => {
+            elizaLogger.debug(
+                `[${index + 1}] ${news.content.text.split("\n")[0]}`
+            );
+            elizaLogger.debug(`    URL: ${news.content.url}`);
+            elizaLogger.debug(
+                `    Created: ${new Date(news.createdAt).toISOString()}`
+            );
+        });
+        elizaLogger.debug("========================");
     }
 
     async start() {
+        await this.debugNews();
         const handleNewsPollingLoop = () => {
             elizaLogger.debug("Starting news polling loop");
             this.pollNews();
@@ -84,7 +115,7 @@ export class NewsPollerService {
                             Number(
                                 this.runtime.getSetting(
                                     "NEWS_MAX_PER_CURRENCY"
-                                ) || 5
+                                ) || 20
                             )
                         );
                     elizaLogger.debug(
@@ -99,19 +130,17 @@ export class NewsPollerService {
                 }
             }
 
-            const newNews = allNews;
+            const newNews = allNews.filter(
+                (news) =>
+                    !lastProcessed ||
+                    new Date(news.published).getTime() > lastProcessed
+            );
 
-            // const newNews = allNews.filter(
-            //     (news) =>
-            //         !lastProcessed ||
-            //         new Date(news.published).getTime() > lastProcessed
-            // );
-
-            // elizaLogger.debug(`Found ${newNews.length} new news items`);
-            // if (newNews.length === 0) {
-            //     elizaLogger.log("No new news to process");
-            //     return;
-            // }
+            elizaLogger.debug(`Found ${newNews.length} new news items`);
+            if (newNews.length === 0) {
+                elizaLogger.log("No new news to process");
+                return;
+            }
 
             for (const news of allNews) {
                 try {
@@ -131,29 +160,27 @@ export class NewsPollerService {
                         news.fullContent || ""
                     }`;
 
-                    // const embedding = await embed(this.runtime, textToEmbed);
-
-                    await this.runtime.messageManager.createMemory({
-                        id: stringToUuid(news.url),
-                        userId: this.runtime.agentId,
-                        agentId: this.runtime.agentId,
-                        content: {
-                            text: textToEmbed,
-                            url: news.url,
-                            source: "cryptopanic",
-                            metadata: {
-                                relevance: news.relevance,
-                                likes: news.likes,
+                    const newsMemory =
+                        await this.newsManager.addEmbeddingToMemory({
+                            id: stringToUuid(news.url + "-" + news.published),
+                            userId: this.runtime.agentId,
+                            agentId: this.runtime.agentId,
+                            content: {
+                                text: textToEmbed,
+                                url: news.url,
+                                source: "cryptopanic",
+                                metadata: {
+                                    relevance: news.relevance,
+                                    likes: news.likes,
+                                    published: news.published,
+                                },
                             },
-                        },
-                        roomId,
-                        embedding: getEmbeddingZeroVector(),
-                        unique: true,
-                        createdAt: new Date(news.published).getTime(),
-                    });
-                    elizaLogger.log(
-                        `Stored news with embedding: ${news.title}`
-                    );
+                            roomId,
+                            createdAt: new Date(news.published).getTime(),
+                        });
+
+                    await this.newsManager.createMemory(newsMemory, true);
+                    elizaLogger.log(`Stored news: ${news.title}`);
                 } catch (error) {
                     elizaLogger.error(
                         `Error storing news item ${news.url}:`,
@@ -163,13 +190,15 @@ export class NewsPollerService {
             }
 
             const latestTimestamp = Math.max(
-                ...newNews.map((news) => new Date(news.published).getTime())
+                ...allNews.map((news) => new Date(news.published).getTime())
             );
             await this.runtime.cacheManager.set(
                 "news/last_processed_timestamp",
                 latestTimestamp
             );
             elizaLogger.log(`Processed ${newNews.length} new news items`);
+
+            await this.debugNews();
         } catch (error) {
             elizaLogger.error(
                 "Error polling news:",

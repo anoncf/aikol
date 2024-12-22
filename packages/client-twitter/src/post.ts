@@ -6,6 +6,7 @@ import {
     getEmbeddingZeroVector,
     IAgentRuntime,
     IImageDescriptionService,
+    MemoryManager,
     ModelClass,
     parseBooleanFromText,
     postActionResponseFooter,
@@ -102,12 +103,23 @@ function truncateToCompleteSentence(
 }
 
 export class TwitterPostClient {
-    client: ClientBase;
-    runtime: IAgentRuntime;
-    twitterUsername: string;
+    private client: ClientBase;
+    private runtime: IAgentRuntime;
+    private twitterUsername: string;
     private isProcessing: boolean = false;
     private lastProcessTime: number = 0;
     private stopProcessingActions: boolean = false;
+    private newsManager: MemoryManager;
+
+    constructor(client: ClientBase, runtime: IAgentRuntime) {
+        this.client = client;
+        this.runtime = runtime;
+        this.twitterUsername = runtime.getSetting("TWITTER_USERNAME");
+        this.newsManager = new MemoryManager({
+            runtime,
+            tableName: "news",
+        });
+    }
 
     async start(postImmediately: boolean = false) {
         if (!this.client.profile) {
@@ -200,12 +212,6 @@ export class TwitterPostClient {
         generateNewTweetLoop();
     }
 
-    constructor(client: ClientBase, runtime: IAgentRuntime) {
-        this.client = client;
-        this.runtime = runtime;
-        this.twitterUsername = runtime.getSetting("TWITTER_USERNAME");
-    }
-
     private async generateNewTweet() {
         elizaLogger.log("Generating new tweet");
 
@@ -213,6 +219,9 @@ export class TwitterPostClient {
             const roomId = stringToUuid(
                 "twitter_generate_room-" + this.client.profile.username
             );
+
+            elizaLogger.debug("Created room ID:", roomId);
+
             await this.runtime.ensureUserExists(
                 this.runtime.agentId,
                 this.client.profile.username,
@@ -220,14 +229,18 @@ export class TwitterPostClient {
                 "twitter"
             );
 
-            // Get recent news from the news-room
+            // Get recent news using the news manager
             const newsRoomId = stringToUuid("news-room");
-            const recentNews = await this.runtime.messageManager.getMemories({
+            const recentNews = await this.newsManager.getMemories({
                 roomId: newsRoomId,
-                count: 5,
+                count: 50,
                 start: 0,
-                end: 5,
+                end: Date.now(),
+                unique: false,
             });
+
+            // Sort by creation time after retrieval
+            recentNews.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 
             // Log each recent news item
             recentNews.forEach((news, index) => {
@@ -237,19 +250,23 @@ export class TwitterPostClient {
             // Select the most relevant news if available
             let selectedNews = null;
             if (recentNews.length > 0) {
-                // Pick a random news item
                 const randomIndex = Math.floor(
                     Math.random() * recentNews.length
                 );
                 selectedNews = recentNews[randomIndex];
-                elizaLogger.debug("Selected news for tweet context:", {
-                    title: selectedNews.content.text.split("\n")[0],
-                    url: selectedNews.content.url,
+                elizaLogger.debug("Selected news item:", {
                     index: randomIndex,
+                    title:
+                        selectedNews?.content?.text?.split("\n")[0] ||
+                        "No title",
+                    url: selectedNews?.content?.url || "No URL",
                 });
+            } else {
+                elizaLogger.debug("No news items found");
             }
 
-            const topics = this.runtime.character.topics.join(", ");
+            const topics = this.runtime.character.topics?.join(", ") || "";
+            elizaLogger.debug("Using topics:", topics);
 
             const state = await this.runtime.composeState(
                 {
@@ -257,7 +274,7 @@ export class TwitterPostClient {
                     roomId: roomId,
                     agentId: this.runtime.agentId,
                     content: {
-                        text: topics || "",
+                        text: topics,
                         action: "TWEET",
                         newsContext: selectedNews
                             ? {
@@ -270,29 +287,36 @@ export class TwitterPostClient {
                 {
                     twitterUserName: this.client.profile.username,
                     hasNews: !!selectedNews,
-                    newsText: selectedNews?.content.text || "",
+                    newsText: selectedNews?.content?.text || "",
                 }
             );
 
-            elizaLogger.debug(
-                "generate pre prompt:\n" + selectedNews.content.text
-            );
+            elizaLogger.debug("Composed state:", {
+                hasNews: !!selectedNews,
+                hasTopics: !!topics,
+                stateContent: state.content,
+            });
+
+            const template =
+                this.runtime.character.templates?.twitterPostTemplate ||
+                twitterPostTemplate;
+            elizaLogger.debug("Using template length:", template.length);
 
             const context = composeContext({
                 state,
-                template:
-                    this.runtime.character.templates?.twitterPostTemplate ||
-                    twitterPostTemplate,
+                template,
                 templatingEngine: "handlebars",
             });
 
-            elizaLogger.debug("generate post prompt:\n" + context);
+            elizaLogger.debug("Generated context length:", context.length);
 
             const newTweetContent = await generateText({
                 runtime: this.runtime,
                 context,
                 modelClass: ModelClass.SMALL,
             });
+
+            elizaLogger.debug("Raw generated content:", newTweetContent);
 
             // First attempt to clean content
             let cleanedContent = "";
@@ -421,7 +445,13 @@ export class TwitterPostClient {
                 elizaLogger.error("Error sending tweet:", error);
             }
         } catch (error) {
-            elizaLogger.error("Error generating new tweet:", error);
+            elizaLogger.error("Error generating new tweet:", {
+                error,
+                message: error.message,
+                stack: error.stack,
+                name: error.name,
+            });
+            throw error; // Re-throw to preserve error handling
         }
     }
 
