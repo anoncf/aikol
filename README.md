@@ -48,6 +48,8 @@ Lea uses cutting-edge AI tools and crypto APIs to analyze the best memecoin oppo
 Get Lea’s top token picks and strategic insights: [@aiKOLlea](https://twitter.com/aikollea)  
 
 #### 2. **Chat with Lea on Telegram**  
+Send her a DM and say hello: [@aikollea_bot](https://t.me/aiKOLLea_bot)
+
 Ask Lea to:  
 - 📊 **Analyze tokens** (financial metrics, holder info, price summaries).  
 - 👛 **Analyze wallets** (performance, known owners, recent trades).  
