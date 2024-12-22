@@ -62,10 +62,10 @@ Lea can help you create a strategy that matches your goals and risk tolerance.
 
 ### 🏗️ Built for the Solana AI Hackathon  
 
-We created aiKOLdao and Lea in under **8 days** during the **@Solana AI Hackathon** with: **@ai16zdao's Eliza framework**. It's awesome. [Try it here]([url](https://elizaos.github.io/eliza/)).   
+We created aiKOLdao and Lea in under **8 days** during the **@Solana AI Hackathon** with: **@ai16zdao's Eliza framework**. It's awesome. [Try it here](https://elizaos.github.io/eliza/).   
 
 ### ✌️ About the Builders
-We're 
+We've been in the space a while. We think predatory KOLs are one of the worst parts of the space. So we're here to change that 😈.
 
 [@autistliberation](@autistliberation) - full-time crypto since 2018, dev & wordcel, multiple time vc backed founder, likes bugs
 
