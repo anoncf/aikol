@@ -50,3 +50,4 @@ tsup.config.bundled_*.mjs
 
 coverage
 .eslintcache
+output.log

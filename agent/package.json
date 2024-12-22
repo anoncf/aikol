@@ -52,6 +52,7 @@
         "@ai16z/plugin-news": "workspace:*",
         "@ai16z/client-news": "workspace:*",
         "@ai16z/plugin-zksync-era": "workspace:*",
+        "@ai16z/plugin-analysis": "workspace:*",
         "readline": "1.3.0",
         "ws": "8.18.0",
         "yargs": "17.7.2"

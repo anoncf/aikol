@@ -26,6 +26,7 @@ import {
     validateCharacterConfig,
 } from "@ai16z/eliza";
 import { zgPlugin } from "@ai16z/plugin-0g";
+import { analysisPlugin } from "@ai16z/plugin-analysis";
 import { bootstrapPlugin } from "@ai16z/plugin-bootstrap";
 import createGoatPlugin from "@ai16z/plugin-goat";
 // import { intifacePlugin } from "@ai16z/plugin-intiface";
@@ -490,6 +491,7 @@ export async function createAgent(
         plugins: [
             bootstrapPlugin,
             newsPlugin,
+            analysisPlugin,
             getSecret(character, "CONFLUX_CORE_PRIVATE_KEY")
                 ? confluxPlugin
                 : null,
