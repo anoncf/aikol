@@ -67,9 +67,9 @@ We created aiKOLdao and Lea in under **8 days** during the **@Solana AI Hackatho
 ### ✌️ About the Builders
 We've been in the space a while. We think predatory KOLs are one of the worst parts of the space. So we're here to change that 😈.
 
-[@autistliberation](@autistliberation) - full-time crypto since 2018, dev & wordcel, multiple time vc backed founder, likes bugs
+[@autistliberation](https://t.me/@autistliberation) - full-time crypto since 2018, dev & wordcel, multiple time vc backed founder, likes bugs
 
-[@addybsf](@AddyBSF) - solidity dev since 2018, 10x shape rotator, vc backed founder, pastel maxie
+[@addybsf](https://t.me/@AddyBSF) - solidity dev since 2018, 10x shape rotator, vc backed founder, pastel maxie
 
 ### 🚧 What’s Next?  
 We’re planning to add **trading delegation**, allowing you to let Lea place memecoin bets for you.
