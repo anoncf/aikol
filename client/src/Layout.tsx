@@ -4,9 +4,13 @@ import { Outlet } from "react-router-dom";
 
 export default function Layout() {
     return (
-        <SidebarProvider>
-            <AppSidebar />
-            <Outlet />
-        </SidebarProvider>
+        <div className="flex min-h-screen">
+            <SidebarProvider>
+                <AppSidebar />
+                <main className="flex-1 overflow-auto">
+                    <Outlet />
+                </main>
+            </SidebarProvider>
+        </div>
     );
 }
