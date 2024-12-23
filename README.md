@@ -102,6 +102,7 @@ Enhanced Eliza Twitter client with:
 - News-based tweet generation from memory
 - Relevance-based content selection
 - Smart formatting within tweet limits
+---
 
 ### 🚧 What’s Next?
 
