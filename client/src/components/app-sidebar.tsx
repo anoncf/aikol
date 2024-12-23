@@ -1,5 +1,6 @@
-import { Calendar, Home, Inbox, Search, Settings } from "lucide-react";
-import { useParams } from "react-router-dom";
+import { Calendar, ExternalLink, Info, Star, MessageCircle, Twitter, Code } from "lucide-react";
+import { useLocation } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 import {
     Sidebar,
@@ -16,19 +17,45 @@ import {
 // Menu items.
 const items = [
     {
-        title: "Chat",
-        url: "chat",
-        icon: Inbox,
+        title: "About aiKOL DAO",
+        url: "charter",
+        icon: Star,
+        isExternal: false
     },
     {
-        title: "Character Overview",
-        url: "character",
-        icon: Calendar,
+        title: "How to Use Lea",
+        url: "how-to-use-lea",
+        icon: Info,
+        isExternal: false
     },
+    {
+        title: "How It's Built",
+        url: "how-its-built",
+        icon: Code,
+        isExternal: false
+    },
+    {
+        title: "Follow aiKOL Lea",
+        url: "https://x.com/aikollea",
+        icon: Twitter,
+        isExternal: true
+    },
+    {
+        title: "Follow aiKOL DAO",
+        url: "https://x.com/aikoldao",
+        icon: Twitter,
+        isExternal: true
+    },
+    {
+        title: "DM aiKOL Lea",
+        url: "https://t.me/aiKOLLea_bot",
+        icon: MessageCircle,
+        isExternal: true
+    }
 ];
 
 export function AppSidebar() {
-    const { agentId } = useParams();
+    const location = useLocation();
 
     return (
         <Sidebar>
@@ -40,13 +67,19 @@ export function AppSidebar() {
                             {items.map((item) => (
                                 <SidebarMenuItem key={item.title}>
                                     <SidebarMenuButton asChild>
-                                        <a href={`/${agentId}/${item.url}`}>
-                                            <item.icon />
+                                        <a
+                                            href={item.isExternal ? item.url : `/${item.url}`}
+                                            target={item.isExternal ? "_blank" : undefined}
+                                            rel={item.isExternal ? "noopener noreferrer" : undefined}
+                                        >
+                                            <item.icon className="w-4 h-4" />
                                             <span>{item.title}</span>
+                                            {item.isExternal && <ExternalLink className="w-3 h-3 ml-1" />}
                                         </a>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
                             ))}
+
                         </SidebarMenu>
                     </SidebarGroupContent>
                 </SidebarGroup>
