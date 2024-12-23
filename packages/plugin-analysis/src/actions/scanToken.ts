@@ -102,11 +102,19 @@ export const scanTokenAction: Action = {
                 hasSocial: !!tokenData.social,
             });
 
-            let analysisText = `${tokenData.name} ($${tokenData.symbol})\n`;
+            let analysisText = `**${tokenData.name}** ($${tokenData.symbol})\n`;
             analysisText += `├ ${address}\n`;
-            analysisText += `└ 🟣 #SOL\n\n`;
 
-            analysisText += `📊 Token Stats\n`;
+            // Add days since creation if available
+            const daysAgo = tokenData.pairCreatedAt
+                ? Math.floor(
+                      (Date.now() - tokenData.pairCreatedAt) /
+                          (1000 * 60 * 60 * 24)
+                  )
+                : null;
+            analysisText += `└ 🟣 #SOL${daysAgo ? ` | ${daysAgo}d` : ""}\n\n`;
+
+            analysisText += `**📊 Token Stats**\n`;
 
             // Price and 24h change
             const priceChange24h = tokenData.priceChange["24h"];
@@ -118,17 +126,36 @@ export const scanTokenAction: Action = {
                 analysisText += "\n";
             }
 
-            // Market cap and other metrics
+            // Market cap and liquidity metrics
             analysisText += ` ├ MC:   $${formatNumber(tokenData.marketCap)}\n`;
-
-            // 24h price changes
-            if (priceChange24h) {
-                const changeIcon = priceChange24h >= 0 ? "📈" : "📉";
-                analysisText += ` ├ 24h:  ${changeIcon} ${priceChange24h.toFixed(2)}%\n`;
+            if (tokenData.liquidity) {
+                analysisText += ` ├ LIQ:  $${formatNumber(tokenData.liquidity)}\n`;
             }
 
-            // Safety score
-            analysisText += ` └ Safe Score: ${10 - tokenData.riskScore}/10\n`;
+            // 24h price changes and transactions
+            if (priceChange24h || tokenData.transactions?.h24) {
+                const transactions = tokenData.transactions?.h24;
+                let line = "";
+
+                if (priceChange24h) {
+                    const changeIcon = priceChange24h >= 0 ? "📈" : "📉";
+                    line += `${changeIcon} ${priceChange24h.toFixed(2)}%`;
+                }
+
+                if (transactions?.buys || transactions?.sells) {
+                    if (line) line += " | ";
+                    line += `🅑 ${transactions.buys || 0} Ⓢ ${transactions.sells || 0}`;
+                }
+
+                if (line) {
+                    analysisText += ` ├ 24h:  ${line}\n`;
+                }
+            }
+
+            // Volume 24h
+            if (tokenData.volume?.h24) {
+                analysisText += ` └ Vol (24h):  $${formatNumber(tokenData.volume.h24)}\n`;
+            }
 
             if (tokenData.isRugged) {
                 analysisText += `\n⚠️ RUG PULL WARNING: This token has been flagged as potentially rugged!\n`;
@@ -136,7 +163,7 @@ export const scanTokenAction: Action = {
 
             // Top wallets section (if available)
             if (tokenData.topWallets && tokenData.topWallets.length > 0) {
-                analysisText += `\n👛 Top Wallets\n`;
+                analysisText += `\n**👛 Top Wallets**\n`;
                 const walletsToShow = source === "telegram" ? 5 : 1;
 
                 tokenData.topWallets
@@ -152,21 +179,36 @@ export const scanTokenAction: Action = {
                             const pnl = wallet.historic30d.realizedPnl;
                             const change = wallet.historic30d.percentageChange;
                             const changeIcon = change >= 0 ? "📈" : "📉";
-                            analysisText += `    • PnL: ${pnl} (${changeIcon} ${change.toFixed(1)}%)\n`;
+                            analysisText += `    └ PnL: ${pnl} (${changeIcon} ${change.toFixed(1)}%)\n`;
                         }
                     });
             }
 
             // Links section
-            analysisText += `\n🔗 Links\n`;
-            if (tokenData.social?.telegram || tokenData.social?.twitter) {
-                const tg = tokenData.social.telegram ? "TG" : "";
-                const twitter = tokenData.social.twitter ? "𝕏" : "";
-                const separator = tg && twitter ? " • " : "";
-                analysisText += ` ├ ${twitter}${separator}${tg}\n`;
+            analysisText += `\n**🔗 Links**\n`;
+            if (
+                tokenData.social?.telegram ||
+                tokenData.social?.twitter ||
+                tokenData.website
+            ) {
+                const links = [];
+                if (tokenData.website) {
+                    links.push(`[🌐](${tokenData.website})`);
+                }
+                if (tokenData.social.twitter) {
+                    links.push(`[𝕏](${tokenData.social.twitter})`);
+                }
+                if (tokenData.social.telegram) {
+                    links.push(`[TG](${tokenData.social.telegram})`);
+                }
+
+                const linksText = links.join(" • ");
+                if (linksText) {
+                    analysisText += ` ├ ${linksText}\n`;
+                }
             }
-            analysisText += ` ├ Chart: ${`https://dexscreener.com/solana/${address}`}\n`;
-            analysisText += ` └ More top wallets: ${`https://www.topwallets.ai/solana/token/${address}`}`;
+            analysisText += ` ├ [Chart](https://dexscreener.com/solana/${address})\n`;
+            analysisText += ` └ [More top wallets](https://www.topwallets.ai/solana/token/${address})`;
 
             await callback({
                 text: analysisText,

@@ -90,6 +90,7 @@ export interface TokenResponse {
         decimals: number;
         description: string | null;
         image: string | null;
+        website: string | null;
         social: {
             twitter?: string;
             telegram?: string;
@@ -97,6 +98,18 @@ export interface TokenResponse {
         price: number | null;
         marketCap: number | null;
         liquidity: number | null;
+        fdv: number | null;
+        pairCreatedAt: number | null;
+        dex: {
+            name: string | null;
+            url: string | null;
+            labels: string[] | null;
+        };
+        quoteToken: {
+            symbol: string | null;
+            address: string | null;
+        };
+        priceNative: string | null;
         priceChange: {
             "1m": number | null;
             "5m": number | null;
@@ -130,6 +143,34 @@ export interface TokenResponse {
                 percentageChange: number;
             } | null;
         }[];
+        volume: {
+            h24: number | null;
+            h6: number | null;
+            h1: number | null;
+            m5: number | null;
+        };
+        transactions: {
+            h24: {
+                buys: number | null;
+                sells: number | null;
+            };
+            h6: {
+                buys: number | null;
+                sells: number | null;
+            };
+            h1: {
+                buys: number | null;
+                sells: number | null;
+            };
+            m5: {
+                buys: number | null;
+                sells: number | null;
+            };
+        };
+        images: {
+            header: string | null;
+            openGraph: string | null;
+        };
     };
 }
 
