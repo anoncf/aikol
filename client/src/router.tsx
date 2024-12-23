@@ -7,6 +7,7 @@ import Chat from "./Chat";
 import Character from "./Character";
 import { CharterOverslew } from "@/components/charter-overslew";
 import HowToUseLea from './components/how-to-use-lea';
+import HowItsBuilt from './components/how-its-built';
 
 export const router = createBrowserRouter([
     {
@@ -41,6 +42,10 @@ export const router = createBrowserRouter([
             {
                 path: "how-to-use-lea",
                 element: <HowToUseLea />,
+            },
+            {
+                path: "how-its-built",
+                element: <HowItsBuilt />,
             },
         ],
     },

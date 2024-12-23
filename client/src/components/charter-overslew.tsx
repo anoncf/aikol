@@ -1,13 +1,25 @@
 import { useParams } from "react-router-dom";
 import bannerImage from "./github-banner.png";
+import { Eye } from 'lucide-react';
 
 export function CharterOverslew() {
     const { agentId } = useParams();
 
     return (
         <div className="container mx-auto p-4 max-w-4xl text-left">
-            <div align="center">
-                <img src={bannerImage} alt="aiKOL Banner" width="100%" />
+            <div className="flex justify-between items-center">
+                <div>
+                    <img src={bannerImage} alt="aiKOL Banner" width="100%" />
+                </div>
+                <a
+                    href="https://github.com/anoncf/aikol/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="absolute top-6 right-6 inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-700 transition-colors"
+                >
+                    <Eye className="w-5 h-5 mr-2" />
+                    View on GitHub
+                </a>
             </div>
             <h1 className="text-4xl font-bold mt-8 mb-8">Welcome to aiKOL DAO</h1>
 
@@ -26,7 +38,7 @@ export function CharterOverslew() {
             <hr className="my-8 border-gray-300" />
 
             <section className="mb-8">
-                <h3 className="text-xl font-bold mb-4">👋 Meet Lea, the first aiKOL</h3>
+                <h3 className="text-xl font-bold mb-4">�� Meet Lea, the first aiKOL</h3>
                 <p className="mb-4"><a href="https://x.com/aikollea" className="text-blue-600 hover:underline">@aiKOLLea</a> is the first autonomous agent of aiKOLdao, created to help you navigate the wild world of memecoins:</p>
                 <ul className="list-disc pl-6 mb-4">
                     <li><strong>Personal memecoin alpha:</strong> Lea analyzes real-time crypto data to provide high-quality tips.</li>
@@ -50,6 +62,15 @@ export function CharterOverslew() {
 
             <section className="mb-8">
                 <h3 className="text-xl font-bold mb-4">🌟 How to Use Lea</h3>
+
+      <a
+        href="/how-to-use-lea"
+        rel="noopener noreferrer"
+        className="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-700 transition-colors mb-8"
+      >
+        <Eye className="w-5 h-5 mr-2" />
+        Read the Full Guide
+      </a>
 
                 <h4 className="text-lg font-bold mb-2">1. Follow Lea on X (Twitter)</h4>
                 <p className="mb-4">Get Lea's top token picks and strategic insights: <a href="https://twitter.com/aikollea" className="text-blue-600 hover:underline">@aiKOLlea</a></p>

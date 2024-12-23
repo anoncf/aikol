@@ -1,4 +1,4 @@
-import { Calendar, ExternalLink, MessageCircle, Twitter } from "lucide-react";
+import { Calendar, ExternalLink, Info, Star, MessageCircle, Twitter, Code } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { Link } from "react-router-dom";
 
@@ -19,7 +19,19 @@ const items = [
     {
         title: "About aiKOL DAO",
         url: "charter",
-        icon: Calendar,
+        icon: Star,
+        isExternal: false
+    },
+    {
+        title: "How to Use Lea",
+        url: "how-to-use-lea",
+        icon: Info,
+        isExternal: false
+    },
+    {
+        title: "How It's Built",
+        url: "how-its-built",
+        icon: Code,
         isExternal: false
     },
     {
@@ -37,9 +49,9 @@ const items = [
     {
         title: "DM aiKOL Lea",
         url: "https://t.me/aiKOLLea_bot",
-        icon: Twitter,
+        icon: MessageCircle,
         isExternal: true
-    },
+    }
 ];
 
 export function AppSidebar() {
@@ -67,12 +79,7 @@ export function AppSidebar() {
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
                             ))}
-                            <Link
-                                to="/how-to-use-lea"
-                                className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-                            >
-                                <span className="ml-2">How to Use Lea</span>
-                            </Link>
+
                         </SidebarMenu>
                     </SidebarGroupContent>
                 </SidebarGroup>
